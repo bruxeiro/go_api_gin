@@ -12,5 +12,6 @@ func HandleRequests() {
 	//Definindo um Endpoint: "/alunos" e passando uma função que devolve os dados em JSON usando o Gin
 	r.GET("/alunos", controller.ExibeTodosAlunos)
 	r.GET("/:nome", controller.Saudacao)
+	r.POST("/alunos", controller.CriarNovoAluno)
 	r.Run()
 }
