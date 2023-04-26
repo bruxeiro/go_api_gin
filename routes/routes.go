@@ -10,6 +10,7 @@ func HandleRequests() {
 	r := gin.Default()
 	//Utilizando a rota em conjunto com um modelo de requisição HTTP, nesse caso o GET
 	//Definindo um Endpoint: "/alunos" e passando uma função que devolve os dados em JSON usando o Gin
+	r.LoadHTMLGlob("templates/*")
 	r.GET("/alunos", controller.ExibeTodosAlunos)
 	r.GET("/:nome", controller.Saudacao)
 	r.POST("/alunos", controller.CriarNovoAluno)
@@ -17,5 +18,6 @@ func HandleRequests() {
 	r.DELETE("/alunos/:id", controller.DeletaAlunoID)
 	r.PATCH("/alunos/:id", controller.EditaAlunoID)
 	r.GET("/alunos/cpf/:cpf", controller.BuscaAlunoCPF)
+	r.GET("/index", controller.ExibePaginaIndex)
 	r.Run()
 }
