@@ -1,10 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/bruxeiro/go_api_gin/controller"
@@ -17,6 +19,7 @@ import (
 var ID int
 
 func SetupDasRotasDeTeste() *gin.Engine {
+	gin.SetMode(gin.ReleaseMode)
 	rotas := gin.Default()
 	return rotas
 }
@@ -32,22 +35,19 @@ func DeletaAlunoMock() {
 	database.DB.Delete(&aluno, ID)
 }
 
-func TestStatusCodeSaudacaoParametro(t *testing.T) {
+func TestVerificaStatusCodeDaSaudacaoComParametro(t *testing.T) {
 	r := SetupDasRotasDeTeste()
 	r.GET("/:nome", controller.Saudacao)
-	req, _ := http.NewRequest("GET", "/eu", nil)
+	req, _ := http.NewRequest("GET", "/gui", nil)
 	resposta := httptest.NewRecorder()
 	r.ServeHTTP(resposta, req)
 	assert.Equal(t, http.StatusOK, resposta.Code, "Deveriam ser iguais")
-	mockDaResposta := `{"API diz:":"E ai eu, tudo beleza?"}`
+	mockDaResposta := `{"API diz":"E ai gui, Tudo beleza?"}`
 	respostaBody, _ := ioutil.ReadAll(resposta.Body)
 	assert.Equal(t, mockDaResposta, string(respostaBody))
-	fmt.Println(string(respostaBody))
-	fmt.Println(mockDaResposta)
-
 }
 
-func TestListandoTodosOsAlunosHandler(t *testing.T) {
+func TestListaTodosOsAlunosHanlder(t *testing.T) {
 	database.ConectaComBancoDeDados()
 	CriaAlunoMock()
 	defer DeletaAlunoMock()
@@ -57,11 +57,9 @@ func TestListandoTodosOsAlunosHandler(t *testing.T) {
 	resposta := httptest.NewRecorder()
 	r.ServeHTTP(resposta, req)
 	assert.Equal(t, http.StatusOK, resposta.Code)
-	fmt.Println(resposta.Body)
-
 }
 
-func TestBuscaAlunoPorCPFHandler(t *testing.T) {
+func TestBucaAlunoPorCPFHandler(t *testing.T) {
 	database.ConectaComBancoDeDados()
 	CriaAlunoMock()
 	defer DeletaAlunoMock()
@@ -71,4 +69,53 @@ func TestBuscaAlunoPorCPFHandler(t *testing.T) {
 	resposta := httptest.NewRecorder()
 	r.ServeHTTP(resposta, req)
 	assert.Equal(t, http.StatusOK, resposta.Code)
+}
+
+func TestBuscaAlunoPorIDHandler(t *testing.T) {
+	database.ConectaComBancoDeDados()
+	CriaAlunoMock()
+	defer DeletaAlunoMock()
+	r := SetupDasRotasDeTeste()
+	r.GET("/alunos/:id", controller.BuscaAlunoID)
+	pathDaBusca := "/alunos/" + strconv.Itoa(ID)
+	req, _ := http.NewRequest("GET", pathDaBusca, nil)
+	resposta := httptest.NewRecorder()
+	r.ServeHTTP(resposta, req)
+	var alunoMock models.Aluno
+	json.Unmarshal(resposta.Body.Bytes(), &alunoMock)
+	assert.Equal(t, "Nome do Aluno Teste", alunoMock.Nome, "Os nomes devem ser iguais")
+	assert.Equal(t, "12345678901", alunoMock.CPF)
+	assert.Equal(t, "123456789", alunoMock.RG)
+	assert.Equal(t, http.StatusOK, resposta.Code)
+}
+
+func TestDeletaAlunoHandler(t *testing.T) {
+	database.ConectaComBancoDeDados()
+	CriaAlunoMock()
+	r := SetupDasRotasDeTeste()
+	r.DELETE("/alunos/:id", controller.DeletaAlunoID)
+	pathDeBusca := "/alunos/" + strconv.Itoa(ID)
+	req, _ := http.NewRequest("DELETE", pathDeBusca, nil)
+	resposta := httptest.NewRecorder()
+	r.ServeHTTP(resposta, req)
+	assert.Equal(t, http.StatusOK, resposta.Code)
+}
+
+func TestEditaUmAlunoHandler(t *testing.T) {
+	database.ConectaComBancoDeDados()
+	CriaAlunoMock()
+	defer DeletaAlunoMock()
+	r := SetupDasRotasDeTeste()
+	r.PATCH("/alunos/:id", controller.EditaAlunoID)
+	aluno := models.Aluno{Nome: "Nome do Aluno Teste", CPF: "47123456789", RG: "123456700"}
+	valorJson, _ := json.Marshal(aluno)
+	pathParaEditar := "/alunos/" + strconv.Itoa(ID)
+	req, _ := http.NewRequest("PATCH", pathParaEditar, bytes.NewBuffer(valorJson))
+	resposta := httptest.NewRecorder()
+	r.ServeHTTP(resposta, req)
+	var alunoMockAtualizado models.Aluno
+	json.Unmarshal(resposta.Body.Bytes(), &alunoMockAtualizado)
+	assert.Equal(t, "47123456789", alunoMockAtualizado.CPF)
+	assert.Equal(t, "123456700", alunoMockAtualizado.RG)
+	assert.Equal(t, "Nome do Aluno Teste", alunoMockAtualizado.Nome)
 }
