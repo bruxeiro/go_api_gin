@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/bruxeiro/go_api_gin/controller"
+	"github.com/bruxeiro/go_api_gin/database"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,5 +30,17 @@ func TestStatusCodeSaudacaoParametro(t *testing.T) {
 	assert.Equal(t, mockDaResposta, string(respostaBody))
 	fmt.Println(string(respostaBody))
 	fmt.Println(mockDaResposta)
+
+}
+
+func TestListandoTodosOsAlunosHandler(t *testing.T) {
+	database.ConectaComBancoDeDados()
+	r := SetupDasRotasDeTeste()
+	r.GET("/alunos", controller.ExibeTodosAlunos)
+	req, _ := http.NewRequest("GET", "/alunos", nil)
+	resposta := httptest.NewRecorder()
+	r.ServeHTTP(resposta, req)
+	assert.Equal(t, http.StatusOK, resposta.Code)
+	fmt.Println(resposta.Body)
 
 }
